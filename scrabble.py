@@ -328,6 +328,37 @@ def _normalizar_palabra(w: str) -> str:
         resultado.append(base)
     return ''.join(resultado)
 
+# Prefijos que no son palabras válidas en Scrabble en español
+_PREFIJOS_INVALIDOS = {
+    'PRE', 'SUB', 'DES', 'BI', 'TRI', 'ANTI', 'SEMI',
+    'INTER', 'TRANS', 'INFRA', 'MULTI', 'VICE',
+    'NEO', 'POS', 'POST', 'PRO',
+}
+
+# Nombres propios más frecuentes que se cuelan en el diccionario
+_NOMBRES_PROPIOS = {
+    # Nombres de persona
+    'MARIA', 'CARLOS', 'PEDRO', 'JOSE', 'JUAN', 'ANA', 'LUIS',
+    'PABLO', 'MIGUEL', 'JORGE', 'ROSA', 'ELENA', 'LAURA', 'PILAR',
+    'CARMEN', 'ISABEL', 'RAFAEL', 'DIEGO', 'SOFIA', 'LUCIA',
+    'ANDREA', 'DANIEL', 'MARTA', 'SERGIO', 'MONICA', 'TERESA',
+    'RAFAEL', 'RAMON', 'GLORIA', 'ANGELES', 'JAIME', 'ALBERTO',
+    'BEATRIZ', 'ANTONIO', 'MANUEL', 'FRANCISCO', 'ROBERTO',
+    'JESUS', 'VICTOR', 'NATALIA', 'SANDRA', 'PATRICIA', 'SILVIA',
+    'FERNANDO', 'ALEJANDRO', 'NICOLAS', 'SEBASTIAN', 'VALENTINA',
+    'CRISTINA', 'CLAUDIA', 'MARIELA', 'CAMILA', 'CAROLINA',
+    'MARIO', 'CESAR', 'HECTOR', 'OSCAR', 'IVAN', 'ADRIANA',
+    'LINA', 'SARA', 'EVA', 'INES', 'NORA', 'ALBA', 'IRENE',
+    'ALICIA', 'SUSANA', 'DIANA', 'REBECA', 'PAULA', 'CLARA',
+    # Lugares y geografía
+    'MADRID', 'EUROPA', 'BOGOTA', 'LIMA', 'CHILE', 'PERU',
+    'BRASIL', 'MEXICO', 'PARIS', 'ROMA', 'BERLIN', 'MOSCU',
+    'TOKIO', 'CUBA', 'HAITI', 'CHILE', 'IRAN', 'IRAK',
+    'ASIA', 'AFRICA', 'AMERICA', 'OCEANIA',
+    # Marcas y otros
+    'TOYOTA', 'HONDA', 'FORD', 'NIKE', 'ADIDAS',
+}
+
 def _cargar_diccionario() -> list[str]:
     from spellchecker import SpellChecker
     spell = SpellChecker(language='es')
@@ -336,8 +367,16 @@ def _cargar_diccionario() -> list[str]:
         if not w.isalpha() or not (2 <= len(w) <= 8):
             continue
         n = _normalizar_palabra(w)
-        if all(c in _LETRAS_VALIDAS for c in n):
-            palabras.add(n)
+        # Rechazar si no está en letras válidas
+        if not all(c in _LETRAS_VALIDAS for c in n):
+            continue
+        # Rechazar prefijos inválidos en Scrabble
+        if n in _PREFIJOS_INVALIDOS:
+            continue
+        # Rechazar nombres propios conocidos
+        if n in _NOMBRES_PROPIOS:
+            continue
+        palabras.add(n)
     return sorted(palabras)
 
 # Palabras extra de respaldo por si spellchecker no las incluye
