@@ -344,6 +344,20 @@ _PREFIJOS_INVALIDOS = {
     'NEO', 'POS', 'POST', 'PRO',
 }
 
+# Siglas y acrónimos (no permitidos en Scrabble)
+_SIGLAS = {
+    'ONU', 'OEA', 'OMS', 'OPS', 'FAO', 'FMI', 'BID', 'BM',
+    'UNESCO', 'UNICEF', 'OTAN', 'NATO',
+    'ADN', 'ARN', 'ATP', 'ADP',
+    'FBI', 'CIA', 'KGB', 'DEA', 'NSA',
+    'GPS', 'USB', 'DVD', 'CD', 'TV', 'PC', 'CPU', 'RAM', 'ROM',
+    'PDF', 'HTML', 'URL', 'SIM', 'PIN',
+    'IVA', 'PIB', 'PNB', 'DNI', 'RUT', 'NIT',
+    'VIP', 'CEO', 'COO', 'CFO',
+    'SOS', 'TIC', 'ONG', 'SRL', 'SA',
+    'SIDA', 'VIH', 'BCG',
+}
+
 # Nombres propios más frecuentes que se cuelan en el diccionario
 _NOMBRES_PROPIOS = {
     # Nombres de persona
@@ -384,6 +398,9 @@ def _cargar_diccionario() -> list[str]:
             continue
         # Rechazar nombres propios conocidos
         if n in _NOMBRES_PROPIOS:
+            continue
+        # Rechazar siglas y acrónimos
+        if n in _SIGLAS:
             continue
         palabras.add(n)
     return sorted(palabras)
