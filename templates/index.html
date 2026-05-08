@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asistente de Scrabble</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>🎲 Asistente de Scrabble</h1>
+    <p class="subtitle">Trie + Ajuste de Curva (Mínimos Cuadrados) · Análisis Numérico 2026-2</p>
+  </header>
+
+  <main>
+
+    <!-- ENTRADA -->
+    <section class="card" id="input-section">
+      <h2>Tus fichas</h2>
+      <p class="hint">Escribe las letras separadas por espacios (máx. 7). Ej: <code>A R T E S</code></p>
+      <div class="input-row">
+        <input id="fichas-input" type="text" placeholder="A R T E S"
+               maxlength="20" autocomplete="off" spellcheck="false" />
+        <button onclick="analizar()">Analizar</button>
+      </div>
+      <div class="teclado">
+        <span class="teclado-label">Insertar letra:</span>
+        <div class="teclas" id="teclas"></div>
+      </div>
+    </section>
+
+    <!-- LOADER -->
+    <div id="loader" class="hidden">
+      <div class="spinner"></div>
+      <p>Calculando ajuste de curva…</p>
+    </div>
+
+    <!-- RESULTADO -->
+    <section id="resultado" class="hidden">
+
+      <!-- Badge de decisión + fichas -->
+      <div class="card resultado-header">
+        <div id="accion-badge"></div>
+        <div class="fichas-display" id="fichas-display"></div>
+      </div>
+
+      <div class="grid-2">
+
+        <!-- Columna izquierda: Trie + palabras -->
+        <div class="card">
+          <h2>🌳 Trie — Palabras encontradas</h2>
+          <p id="total-palabras" class="muted-text"></p>
+          <ul id="palabras-lista"></ul>
+        </div>
+
+        <!-- Columna derecha: Ajuste de curva -->
+        <div class="card">
+          <h2>📈 Ajuste de Curva
+            <span class="badge badge-mc">Mínimos Cuadrados</span>
+          </h2>
+
+          <!-- Métricas del ajuste -->
+          <div class="metricas" id="curva-metricas"></div>
+
+          <!-- Gráfica -->
+          <div class="chart-wrap">
+            <canvas id="curvaChart"></canvas>
+          </div>
+
+          <!-- Ecuación resultante -->
+          <p id="ecuacion" class="ecuacion-text"></p>
+
+          <!-- Tabla de fichas con análisis -->
+          <h3 style="margin:1rem 0 .5rem;font-size:.9rem;">Análisis de tus fichas</h3>
+          <table id="fichas-tabla">
+            <thead>
+              <tr>
+                <th>Ficha</th>
+                <th>Frecuencia (%)</th>
+                <th>Puntaje real</th>
+                <th>Valor estimado</th>
+                <th>Residuo</th>
+              </tr>
+            </thead>
+            <tbody id="fichas-tbody"></tbody>
+          </table>
+
+          <!-- Detalle ecuaciones normales -->
+          <details style="margin-top:1rem;">
+            <summary>Ver ecuaciones normales (sistema AᵀA · c = Aᵀy)</summary>
+            <div id="gauss-detalle" class="gauss-block"></div>
+          </details>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ERROR -->
+    <div id="error-box" class="hidden card error-card">
+      <p id="error-msg"></p>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Proyecto de Aula · Análisis Numérico 2026-2 (11395-Miércoles)</p>
+  </footer>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
