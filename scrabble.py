@@ -204,6 +204,33 @@ def calcular_r2(ys: list[float], ys_pred: list[float]) -> float:
 
 
 # ---------------------------------------------------------------------------
+# MODELO GLOBAL — se ajusta UNA SOLA VEZ al importar el módulo
+# La curva no depende de las fichas del usuario: siempre usa los 27 pares
+# (frecuencia, puntaje) del alfabeto español completo.
+# ---------------------------------------------------------------------------
+_LETRAS_MODELO = [(FRECUENCIAS[l], PUNTAJES[l]) for l in FRECUENCIAS if l in PUNTAJES]
+_XS_MODELO = [p[0] for p in _LETRAS_MODELO]
+_YS_MODELO = [p[1] for p in _LETRAS_MODELO]
+
+COEF_GLOBAL, PASOS_GAUSS = ajuste_polinomio_grado2(_XS_MODELO, _YS_MODELO)
+
+_R2_GLOBAL = calcular_r2(
+    _YS_MODELO,
+    [evaluar_polinomio(COEF_GLOBAL, x) for x in _XS_MODELO]
+)
+
+# Puntos fijos de la curva y nube de datos (no cambian nunca)
+PUNTOS_CURVA = [
+    {'x': round(i * 14 / 59, 3), 'y': round(evaluar_polinomio(COEF_GLOBAL, i * 14 / 59), 3)}
+    for i in range(60)
+]
+PUNTOS_DATOS = [
+    {'letra': l, 'x': FRECUENCIAS[l], 'y': PUNTAJES[l]}
+    for l in FRECUENCIAS if l in PUNTAJES
+]
+
+
+# ---------------------------------------------------------------------------
 # CAPA 3 — ANÁLISIS DE FICHAS CON EL MODELO
 # ---------------------------------------------------------------------------
 
@@ -247,34 +274,15 @@ def recomendar(fichas_str: str, trie: Trie) -> dict:
     mejor_palabra = palabras[0] if palabras else None
     mejor_puntaje = puntaje_palabra(mejor_palabra) if mejor_palabra else 0
 
-    # ── PASO 2: Ajuste de curva — construir modelo con todos los datos ───
-    letras_datos = [(FRECUENCIAS[l], PUNTAJES[l]) for l in FRECUENCIAS if l in PUNTAJES]
-    xs = [p[0] for p in letras_datos]
-    ys = [p[1] for p in letras_datos]
+    # ── PASO 2: Usar el modelo global (ya calculado al importar) ─────────
+    # La curva p(x) es fija — entrenada con los 27 pares del alfabeto español.
+    # Lo que cambia por mano: qué fichas se evalúan y sus residuos.
+    analisis_fichas = analizar_fichas_con_curva(fichas, COEF_GLOBAL)
 
-    coef, pasos_gauss = ajuste_polinomio_grado2(xs, ys)
-
-    # Calidad del ajuste
-    ys_pred = [evaluar_polinomio(coef, x) for x in xs]
-    r2 = calcular_r2(ys, ys_pred)
-
-    # Puntos para graficar la curva (0% a 14% de frecuencia, 60 puntos)
-    puntos_curva = [
-        {'x': round(i * 14 / 59, 3), 'y': round(evaluar_polinomio(coef, i * 14 / 59), 3)}
-        for i in range(60)
-    ]
-
-    # Todos los puntos de datos (para la nube de puntos)
-    puntos_datos = [
-        {'letra': l, 'x': FRECUENCIAS[l], 'y': PUNTAJES[l]}
-        for l in FRECUENCIAS if l in PUNTAJES
-    ]
-
-    # ── PASO 3: Analizar fichas con el modelo ────────────────────────────
-    analisis_fichas = analizar_fichas_con_curva(fichas, coef)
-
-    # Valor estratégico promedio de la mano según la curva
+    # Métricas POR MANO (estas sí cambian con cada combinación de fichas)
     umbral = sum(d['valor_estimado'] for d in analisis_fichas) / len(analisis_fichas)
+    error_medio_mano = sum(abs(d['residuo']) for d in analisis_fichas) / len(analisis_fichas)
+    residuo_max = max(analisis_fichas, key=lambda d: abs(d['residuo']))
 
     # Decisión: ¿el mejor puntaje obtenible supera el umbral estratégico?
     vale_jugar = mejor_puntaje > umbral and mejor_palabra is not None
@@ -286,11 +294,12 @@ def recomendar(fichas_str: str, trie: Trie) -> dict:
         'mejor_palabra': mejor_palabra,
         'mejor_puntaje': mejor_puntaje,
         'ajuste_curva': {
-            'coeficientes': [round(c, 6) for c in coef],
-            'r2': round(r2, 4),
-            'pasos_gauss': pasos_gauss,
-            'puntos_curva': puntos_curva,
-            'puntos_datos': puntos_datos,
+            'coeficientes': [round(c, 6) for c in COEF_GLOBAL],
+            'r2_modelo': round(_R2_GLOBAL, 4),      # fijo, del modelo global
+            'error_medio_mano': round(error_medio_mano, 3),  # cambia por mano
+            'pasos_gauss': PASOS_GAUSS,
+            'puntos_curva': PUNTOS_CURVA,
+            'puntos_datos': PUNTOS_DATOS,
             'umbral': round(umbral, 3),
         },
         'analisis_fichas': analisis_fichas,

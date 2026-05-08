@@ -96,9 +96,9 @@ function renderResultado(d) {
   // Métricas del ajuste
   const [c0, c1, c2] = c.coeficientes;
   document.getElementById('curva-metricas').innerHTML =
-    metrica(c.r2, 'R²') +
-    metrica(c.iteraciones_gauss ?? '3×3', 'Sistema Gauss') +
-    metrica(c.umbral, 'Umbral');
+    metrica(c.r2_modelo, 'R² modelo') +
+    metrica(c.error_medio_mano, 'Error medio mano') +
+    metrica(c.umbral, 'Umbral mano');
 
   // Ecuación del polinomio
   document.getElementById('ecuacion').textContent =
@@ -153,14 +153,23 @@ function renderGrafica(c, analisisFichas, fichaResaltada) {
 
   // Fichas actuales del usuario
   const puntosFichas = analisisFichas.map(f => ({
-    x: f.frecuencia,
-    y: f.puntaje_real,
-    label: f.ficha,
-    resaltada: f.ficha === fichaResaltada,
+    x: f.frecuencia, y: f.puntaje_real,
+    label: f.ficha, resaltada: f.ficha === fichaResaltada,
   }));
 
-  // Curva ajustada
-  const curvaDatos = c.puntos_curva.map(p => ({ x: p.x, y: p.y }));
+  // Líneas de residuo: segmento vertical desde puntaje_real hasta valor_estimado
+  // Formato: [punto_real, punto_curva, null] por cada ficha → segmentos separados
+  const residuosDatos = analisisFichas.flatMap(f => [
+    { x: f.frecuencia, y: f.puntaje_real,    label: f.ficha },
+    { x: f.frecuencia, y: f.valor_estimado,  label: f.ficha },
+    null,
+  ]);
+
+  // Línea horizontal de umbral
+  const umbralDatos = [
+    { x: 0, y: c.umbral },
+    { x: 14, y: c.umbral },
+  ];
 
   graficaInstancia = new Chart(ctx, {
     type: 'scatter',
@@ -168,28 +177,51 @@ function renderGrafica(c, analisisFichas, fichaResaltada) {
       datasets: [
         {
           label: 'Curva ajustada p(x)',
-          data: curvaDatos,
+          data: c.puntos_curva.map(p => ({ x: p.x, y: p.y })),
           type: 'line',
           borderColor: '#6366f1',
           backgroundColor: 'transparent',
           borderWidth: 2,
           pointRadius: 0,
           tension: 0.4,
+          order: 3,
+          spanGaps: false,
+        },
+        {
+          label: `Umbral mano (${c.umbral})`,
+          data: umbralDatos,
+          type: 'line',
+          borderColor: '#eab308',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          order: 3,
+          spanGaps: true,
+        },
+        {
+          label: 'Residuos fichas',
+          data: residuosDatos,
+          type: 'line',
+          borderColor: 'rgba(239,68,68,0.7)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [3, 3],
+          pointRadius: 0,
           order: 1,
+          spanGaps: false,
         },
         {
           label: 'Letras del español',
           data: puntosEspanol,
-          backgroundColor: 'rgba(148,163,184,0.5)',
-          pointRadius: 4,
-          order: 2,
+          backgroundColor: 'rgba(148,163,184,0.45)',
+          pointRadius: 3,
+          order: 4,
         },
         {
           label: 'Tus fichas',
           data: puntosFichas,
-          backgroundColor: puntosFichas.map(p =>
-            p.resaltada ? '#ef4444' : '#22d3ee'
-          ),
+          backgroundColor: puntosFichas.map(p => p.resaltada ? '#ef4444' : '#22d3ee'),
           pointRadius: 7,
           pointStyle: 'rectRot',
           order: 0,
@@ -200,27 +232,28 @@ function renderGrafica(c, analisisFichas, fichaResaltada) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+        legend: { labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 14 } },
         tooltip: {
           callbacks: {
             label: ctx => {
               const raw = ctx.raw;
+              if (!raw) return '';
               return raw.label
-                ? `${raw.label}: freq=${raw.x}%, pts=${raw.y}`
-                : `(${raw.x.toFixed(2)}, ${raw.y.toFixed(2)})`;
+                ? `${raw.label}: freq=${raw.x}%  pts=${raw.y}`
+                : `(${Number(raw.x).toFixed(2)}, ${Number(raw.y).toFixed(2)})`;
             },
           },
         },
       },
       scales: {
         x: {
-          title: { display: true, text: 'Frecuencia en español (%)', color: '#94a3b8' },
-          ticks: { color: '#94a3b8' },
+          title: { display: true, text: 'Frecuencia en español (%)', color: '#94a3b8', font: { size: 10 } },
+          ticks: { color: '#94a3b8', font: { size: 9 } },
           grid:  { color: '#1e293b' },
         },
         y: {
-          title: { display: true, text: 'Puntaje Scrabble', color: '#94a3b8' },
-          ticks: { color: '#94a3b8' },
+          title: { display: true, text: 'Puntaje Scrabble', color: '#94a3b8', font: { size: 10 } },
+          ticks: { color: '#94a3b8', font: { size: 9 } },
           grid:  { color: '#1e293b' },
         },
       },
